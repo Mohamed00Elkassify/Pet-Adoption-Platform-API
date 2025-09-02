@@ -30,7 +30,7 @@ class PetSerializer(serializers.ModelSerializer):
         model = Pet
         fields = [
             'id', 'name', 'age', 'species', 'city',
-            'photo', 'photo_url', 'status', 'description', 'owner'
+            'photo', 'status', 'description', 'owner'
         ]
         read_only_fields = ['owner']
 

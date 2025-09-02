@@ -14,9 +14,25 @@ from .serializers import (
     AdoptionRequestSerializer
 )
 from .permissions import IsOwnerOrReadOnly, IsPetOwner
+try:
+    from drf_spectacular.utils import extend_schema, extend_schema_view # type: ignore
+except ImportError:  # graceful fallback if drf-spectacular not installed yet
+    def extend_schema(*args, **kwargs):
+        def dec(fn):
+            return fn
+        return dec
+    def extend_schema_view(**kwargs):
+        def dec(cls):
+            return cls
+        return dec
 
 #* AUTH
 class SignupView(generics.CreateAPIView):
+    """User signup endpoint.
+
+    Creates a new user account and returns an auth token plus the username.
+    Password is securely hashed before saving.
+    """
     queryset = User.objects.all()
     serializer_class = SignupSerializer
     permission_classes = [permissions.AllowAny]
@@ -68,7 +84,20 @@ class SignupView(generics.CreateAPIView):
 #             raise PermissionDenied('You can only delete your own pets.')
 #         instance.delete()
 #! Combine the PetListAPI, PetDetailAPI, PetCreateAPI, PetUpdateAPI, and PetDeleteAPI into PetViewSet
+@extend_schema_view(
+    list=extend_schema(summary="List pets", description="Retrieve a list of pets. Supports filtering by species, city, and status."),
+    retrieve=extend_schema(summary="Retrieve pet", description="Get full details for a single pet."),
+    create=extend_schema(summary="Create pet", description="Create a new pet owned by the authenticated user."),
+    update=extend_schema(summary="Update pet", description="Replace all fields of a pet you own."),
+    partial_update=extend_schema(summary="Partial update pet", description="Update one or more fields of a pet you own."),
+    destroy=extend_schema(summary="Delete pet", description="Delete a pet you own.")
+)
 class PetViewSet(viewsets.ModelViewSet):
+    """CRUD operations for pets.
+
+    Anyone can read pet data; only the owner may create, modify, or delete their own pets.
+    Filtering: species, city, status.
+    """
     queryset = Pet.objects.all()
     serializer_class = PetSerializer
     # IsOwnerOrReadOnly allows anyone to read, only owners (authenticated) can modify.
@@ -97,7 +126,19 @@ class PetViewSet(viewsets.ModelViewSet):
 #         serializer.save(pet=pet, requester=self.request.user)
 
 #! Combine the AdoptionRequestListAPI and AdoptionRequestCreateAPI into AdoptionRequestViewSet
+@extend_schema_view(
+    list=extend_schema(summary="List adoption requests", description="List adoption requests for pets you own."),
+    retrieve=extend_schema(summary="Retrieve adoption request", description="Get details of a single adoption request for one of your pets."),
+    create=extend_schema(summary="Create adoption request", description="Submit an adoption request for a pet (provide pet_id in the body)."),
+    destroy=extend_schema(summary="Delete adoption request", description="Delete an adoption request (pet owner only)."),
+    update=extend_schema(summary="Update adoption request", description="Update an adoption request (pet owner only)."),
+    partial_update=extend_schema(summary="Partial update adoption request", description="Partially update an adoption request (pet owner only).")
+)
 class AdoptionRequestViewSet(viewsets.ModelViewSet):
+    """Manage adoption requests for pets.
+
+    Pet owners can view/manage requests targeting their pets. Authenticated users can create a new request (cannot request their own pet, duplicates blocked).
+    """
     serializer_class = AdoptionRequestSerializer
     # Auth required; object-level: only pet owner can access specific request objects (IsPetOwner)
     permission_classes = [permissions.IsAuthenticated, IsPetOwner]

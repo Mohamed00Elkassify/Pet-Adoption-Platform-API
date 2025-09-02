@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'rest_framework.authtoken',
+    'drf_spectacular',
     'pets',
 ]
 
@@ -117,6 +118,16 @@ REST_FRAMEWORK = {
             'rest_framework.filters.SearchFilter',
             'rest_framework.filters.OrderingFilter',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+
+# Configure Spectacular settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Pet Adoption API',
+    'DESCRIPTION': 'API for managing pet adoptions',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 # Internationalization
